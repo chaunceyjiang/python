@@ -1,0 +1,35 @@
+from urllib.request import urlopen
+from bs4 import BeautifulSoup
+import re,random,datetime
+
+def getInternalLinks(bs,inUrl):
+    internalLinks=[]
+    for link in bs.findAll("a",href=re.compile("^(/|.*"+inUrl+")")):
+        if link.attrs["href"] is not None:
+            if link.attrs["href"] not in internalLinks:
+                internalLinks.append(link.attrs["href"])
+    return internalLinks
+def getExternalLinks(bs,exUrl):
+    externalLinks=[]
+    for link in bs.findAll("a",href=re.compile("^(http|www)((?!"+exUrl+").)*$")):
+        if link.attrs["href"] is not None:
+            if link.attrs["href"] not in externalLinks:
+                externalLinks.append(link.attrs["href"])
+    return externalLinks
+def splitAdderss(address):
+    addressParts=address.replace("http://","").split("/")
+    return  addressParts
+def getRandomEXteralLink(startingPagr):
+    html=urlopen(startingPagr)
+    bs=BeautifulSoup(html,"html.parser")
+    exteralLinks=getExternalLinks(bs,splitAdderss(startingPagr)[0])
+    if len(exteralLinks)==0:
+        interalLink=getInternalLinks(bs,startingPagr)
+        return getExternalLinks(interalLink[random.randint(0,len(interalLink)-1)])
+    else:
+        return exteralLinks[random.randint(0,len(exteralLinks)-1)]
+def followExteralOnly(startingPagr):
+    exteralLink=getRandomEXteralLink(startingPagr)
+    print("random exteralLink :"+exteralLink)
+    followExteralOnly(exteralLink)
+followExteralOnly("http://www.cqwu.net")
