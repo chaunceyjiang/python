@@ -24,8 +24,8 @@ csrf=bs.find("input",attrs={"name":"_csrf"}).get("value")
 print(csrf+"\n")
 data={
         '_csrf':csrf,
-	'LoginForm[username]':"goodstuden@qq.com",
-	'LoginForm[password]':"jiangyan520",
+	'LoginForm[username]':"xxxxxxx",
+	'LoginForm[password]':"xxxxxxx",
 	'LoginForm[rememberMe]':'0',
 	'login-button':'登 录'
         }
@@ -34,7 +34,7 @@ data={
 session.post(url,data=data,headers=headers)
 
 response=session.get("http://down.51cto.com/credits")
-driver=webdriver.Chrome(r"C:\Python\phantomjs\bin\chromedriver.exe")
-driver.get("http://down.51cto.com/credits")
+#driver=webdriver.Chrome(r"C:\Python\phantomjs\bin\chromedriver.exe")
+#driver.get("http://down.51cto.com/credits")
 bs=BeautifulSoup(response.content,"html.parser")
 print(bs)
