@@ -1,4 +1,4 @@
-import pygame,random,time
+import pygame,random,time,math
 from pygame.locals import *
 
 SCREEN_WIDTH=480
@@ -54,6 +54,9 @@ class Player(pygame.sprite.Sprite):
     def use_bomb(self):
         if self.bomb_nub>0 and round(self.newtime-self.oldtime)>=1:
             self.bomb_nub-=1
+            return True
+        else:
+            return False
     def get_bomb(self):
         if self.bomb_nub<3:
             self.bomb_nub+=1
@@ -88,11 +91,25 @@ class Enemy(pygame.sprite.Sprite):
        self.rect.topleft = init_pos
        self.down_imgs = enemy_down_imgs
        self.speed = speed
+       self.flag=1
        self.down_index = 0
-
+       self.bullets = pygame.sprite.Group()
     def move(self):
         self.rect.top += self.speed
-
+    def shoot(self,bullte_img):
+        bullet_rect=self.rect.midbottom
+        bullet3 = Bullet(bullet_img, bullet_rect)
+        self.bullets.add(bullet3)
+    def sin_move(self):
+        self.rect.top+=self.speed-1
+        if self.flag >0:
+            self.rect.left+=int(self.speed/4)
+            if self.rect.left+self.rect.width> SCREEN_WIDTH:
+                self.flag=-1
+        else:
+            self.rect.left-=int(self.speed/4)
+            if self.rect.left<0:
+                self.flag=1
 pygame.init()
 
 screen=pygame.display.set_mode((SCREEN_WIDTH,SCREEN_HEIGHT),0,32)
@@ -137,6 +154,17 @@ enemy1_down_imgs.append(plane_img.subsurface(pygame.Rect(873, 697, 57, 45)))
 enemy1_down_imgs.append(plane_img.subsurface(pygame.Rect(267, 296, 57, 48)))
 enemy1_down_imgs.append(plane_img.subsurface(pygame.Rect(930, 700, 57, 45)))
 
+enemy2_rect = pygame.Rect(0, 0, 69, 91)
+enemy2_img = plane_img.subsurface(enemy2_rect)
+enemy2_down_imgs = []
+enemy2_down_imgs.append(plane_img.subsurface(pygame.Rect(533, 653, 70, 98)))
+enemy2_down_imgs.append(plane_img.subsurface(pygame.Rect(603, 653, 70, 98)))
+enemy2_down_imgs.append(plane_img.subsurface(pygame.Rect(673, 653, 70, 98)))
+enemy2_down_imgs.append(plane_img.subsurface(pygame.Rect(743, 653, 70, 98)))
+
+
+
+
 bomb_rect=pygame.Rect(100, 118, 63, 106)
 bomb_icon_rect=pygame.Rect(810, 692, 64, 55)
 bomb_icon_nub_rect=pygame.Rect(840, 646, 23, 46)
@@ -145,7 +173,9 @@ bomb_img=plane_img.subsurface(bomb_rect)
 bomb_icon_img=plane_img.subsurface(bomb_icon_rect)
 
 enemies1 = pygame.sprite.Group()
+enemies2 = pygame.sprite.Group()
 enemies_down = pygame.sprite.Group()
+enemies_down_2 = pygame.sprite.Group()
 bombs=pygame.sprite.Group()
 
 
@@ -178,11 +208,16 @@ while running:
     if score> 10 :speed=3
     if score > 50 :speed=4;frequency=35
     if score > 100 :speed=6;frequency=25
-
+    if score > 500 :speed=7
     if enemy_frequency % frequency == 0:
         enemy1_pos = [random.randint(0, SCREEN_WIDTH - enemy1_rect.width), 0]
         enemy1 = Enemy(enemy1_img, enemy1_down_imgs, enemy1_pos,speed)
         enemies1.add(enemy1)#生成敌机组
+
+    if score > 40 and enemy_frequency % (frequency+150) == 0:
+        enemy2_pos = [random.randint(0, SCREEN_WIDTH - enemy2_rect.width), 0]
+        enemy2 = Enemy(enemy2_img, enemy2_down_imgs, enemy2_pos,speed-2)
+        enemies2.add(enemy2)#生成敌机组
     if bomb_frequency // 501 == 1:
         bomb_pos = [random.randint(0, SCREEN_WIDTH - bomb_rect.width), 0]
         bomb1=Bomb(bomb_img,bomb_pos)
@@ -209,9 +244,21 @@ while running:
             player.is_hit = True
             game_over_sound.play()
             break
+
         if enemy.rect.top > SCREEN_HEIGHT:
             enemies1.remove(enemy)
+    for enemy in enemies2:
+        enemy.sin_move()
+        # 判断玩家是否被击中
+        if pygame.sprite.collide_rect(enemy, player):  # 矩形碰撞检测
+            enemies_down_2.add(enemy)  # 添加到 爆炸敌机组
+            enemies2.remove(enemy)  # 移除正常敌机
+            player.is_hit = True
+            game_over_sound.play()
+            break
 
+        if enemy.rect.top > SCREEN_HEIGHT:
+            enemies2.remove(enemy)
     for bomb in bombs:
         bomb.move()
         if pygame.sprite.collide_rect(bomb,player):
@@ -223,10 +270,11 @@ while running:
             bombs.remove(bomb)
 
     enemies1_down = pygame.sprite.groupcollide(enemies1, player.bullets, 1, 1)#组检测 如果敌方与子弹相撞  双方消失
-
+    enemies2_down = pygame.sprite.groupcollide(enemies2, player.bullets, 1, 1)  # 组检测 如果敌方与子弹相撞  双方消失
     for enemy_down in enemies1_down:
         enemies_down.add(enemy_down)
-
+    for enemy_down in enemies2_down:
+        enemies_down_2.add(enemy_down)
     screen.fill(0)
     screen.blit(background_img, (0, 0))
 
@@ -248,6 +296,15 @@ while running:
             continue
         screen.blit(enemy_down.down_imgs[enemy_down.down_index // 2], enemy_down.rect)#敌机爆炸效果显示
         enemy_down.down_index += 1
+    for enemy_down in enemies_down_2:
+        if enemy_down.down_index == 0:
+            enemy1_down_sound.play()
+        if enemy_down.down_index > 7:#如果超过 爆炸敌机的最后一张图
+            enemies_down_2.remove(enemy_down)
+            score += 2
+            continue
+        screen.blit(enemy_down.down_imgs[enemy_down.down_index // 2], enemy_down.rect)#敌机爆炸效果显示
+        enemy_down.down_index += 1
     if player.bomb_nub > 0:
         screen.blit(bomb_icon_img, (SCREEN_WIDTH - bomb_icon_rect.width, 0))
 #        print(player.bomb_nub )
@@ -256,6 +313,7 @@ while running:
 
     player.bullets.draw(screen)
     enemies1.draw(screen)
+    enemies2.draw(screen)
     bombs.draw(screen)
 
     score_font = pygame.font.Font(None, 36)
@@ -272,10 +330,8 @@ while running:
 
     # 监听键盘事件
     key_pressed = pygame.key.get_pressed()
-    # 若玩家被击中，则无效
-    flag+=1
 
-#    print(player.bomb_nub, flag)
+    # 若玩家被击中，则无效
     if not player.is_hit:
         if key_pressed[K_w] or key_pressed[K_UP]:
             player.moveUp()
@@ -286,8 +342,14 @@ while running:
         if key_pressed[K_d] or key_pressed[K_RIGHT]:
             player.moveRight()
         if key_pressed[K_SPACE]:
-            player.use_bomb()
-            player.updateTime(time.time())
+            if player.use_bomb():#使用炸弹
+                for enemy in enemies1:
+                    enemies_down.add(enemy)  # 添加到 爆炸敌机组
+                    enemies1.remove(enemy)  # 移除正常敌机
+                for enemy in enemies2:
+                    enemies_down_2.add(enemy)  # 添加到 爆炸敌机组
+                    enemies2.remove(enemy)  # 移除正常敌机
+            player.updateTime(time.time())#   更新炸弹使用时间
 font = pygame.font.Font(None, 48)
 text = font.render('Score: '+ str(score), True, (255, 0, 0))
 text_rect = text.get_rect()

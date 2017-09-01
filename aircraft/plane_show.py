@@ -4,7 +4,7 @@ from pygame.locals import *
 plane_img=pygame.image.load('resources/image/shoot.png')
 background_img=pygame.image.load('resources/image/background.png')
 player_rect = []
-player_rect.append(pygame.Rect(0, 99, 102, 126))        # 玩家精灵图片区域
+player_rect.append(pygame.Rect(0, 0, 69, 91))        # 玩家精灵图片区域
 player_rect.append(pygame.Rect(840, 646, 23, 46))
 player_rect.append(pygame.Rect(167, 750, 167, 258))
 # 玩家爆炸精灵图片区域
@@ -24,7 +24,7 @@ while True:
             exit()
     screen.blit(background_img,(0,0))
 
-    screen.blit(plane_img.subsurface(player_rect[1]), (0, 0))
+    screen.blit(plane_img.subsurface(player_rect[0]), (0, 0))
     screen.blit(plane_img.subsurface(player_rect[4]), (300, 500))
     screen.blit(plane_img.subsurface(player_rect[5]), (400, 100))
     pygame.display.update()
