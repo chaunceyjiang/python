@@ -163,7 +163,7 @@ enemy2_down_imgs = []
 enemy2_down_imgs.append(plane_img.subsurface(pygame.Rect(533, 653, 70, 98)))
 enemy2_down_imgs.append(plane_img.subsurface(pygame.Rect(603, 653, 70, 98)))
 enemy2_down_imgs.append(plane_img.subsurface(pygame.Rect(673, 653, 70, 98)))
-enemy2_down_imgs.append(plane_img.subsurface(pygame.Rect(743, 653, 70, 9  8)))
+enemy2_down_imgs.append(plane_img.subsurface(pygame.Rect(743, 653, 70, 98)))
 
 
 
