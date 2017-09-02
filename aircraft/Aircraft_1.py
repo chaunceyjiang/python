@@ -16,14 +16,14 @@ class Bomb(pygame.sprite.Sprite):
         self.rect.top+=self.speed
 #子弹
 class Bullet(pygame.sprite.Sprite):
-    def __init__(self,bullet_img,init_pos):
+    def __init__(self,bullet_img,init_pos,speed):
         pygame.sprite.Sprite.__init__(self)
         self.image=bullet_img
         self.rect=self.image.get_rect()#获取矩形区域，用来检测碰撞
         self.rect.midbottom=init_pos
-        self.speed=10
-    def move(self):
-        self.rect.top-=self.speed
+        self.speed=speed
+    def move(self,direction=1):
+        self.rect.top-=self.speed*direction
 #玩家
 class Player(pygame.sprite.Sprite):
     def __init__(self,plane_img,player_rect,init_pos):
@@ -43,9 +43,9 @@ class Player(pygame.sprite.Sprite):
     def shoot(self,bullet_img,state):
         pos=list(self.rect.midtop)
         pos[0]+=state
-        bullet1=Bullet(bullet_img,tuple(pos))
+        bullet1=Bullet(bullet_img,tuple(pos),10)
         pos[0] -= state*2
-        bullet2 = Bullet(bullet_img, tuple(pos))
+        bullet2 = Bullet(bullet_img, tuple(pos),10)
         self.bullets.add(bullet1)
         self.bullets.add(bullet2)
     def updateTime(self,newtime):
@@ -91,23 +91,24 @@ class Enemy(pygame.sprite.Sprite):
        self.rect.topleft = init_pos
        self.down_imgs = enemy_down_imgs
        self.speed = speed
-       self.flag=1
+       self.flag=random.randint(0,1)#随机方向
        self.down_index = 0
+       self.rand=random.randint(0,50)
        self.bullets = pygame.sprite.Group()
     def move(self):
         self.rect.top += self.speed
-    def shoot(self,bullte_img):
+    def shoot(self,bullte_img,speed):
         bullet_rect=self.rect.midbottom
-        bullet3 = Bullet(bullet_img, bullet_rect)
+        bullet3 = Bullet(bullet2_img, bullet_rect,speed)
         self.bullets.add(bullet3)
     def sin_move(self):
-        self.rect.top+=self.speed-1
+        self.rect.top+=self.speed
         if self.flag >0:
-            self.rect.left+=int(self.speed/4)
+            self.rect.left+=int(self.speed/2)
             if self.rect.left+self.rect.width> SCREEN_WIDTH:
-                self.flag=-1
+                self.flag=0
         else:
-            self.rect.left-=int(self.speed/4)
+            self.rect.left-=int(self.speed/2)
             if self.rect.left<0:
                 self.flag=1
 pygame.init()
@@ -122,7 +123,7 @@ bullet_sound=pygame.mixer.Sound('resources/sound/bullet.wav')
 enemy1_down_sound=pygame.mixer.Sound('resources/sound/enemy1_down.wav')
 game_over_sound=pygame.mixer.Sound('resources/sound/game_over.wav')
 get_bomb_sound=pygame.mixer.Sound('resources/sound/get_bomb.wav')
-
+enemy2_down_sound=pygame.mixer.Sound('resources/sound/enemy2_down.wav')
 bullet_sound.set_volume(0.3)#set the playback volume for this Sound
 enemy1_down_sound.set_volume(0.3)
 game_over_sound.set_volume(0.3)
@@ -145,6 +146,8 @@ player = Player(plane_img, player_rect, player_pos)#初始化飞机
 
 bullet_rect = pygame.Rect(1004, 987, 9, 21)
 bullet_img = plane_img.subsurface(bullet_rect)
+bullet2_rect=pygame.Rect(68, 78, 11, 22)
+bullet2_img=plane_img.subsurface(bullet2_rect)
 
 enemy1_rect = pygame.Rect(534, 612, 57, 40)
 enemy1_img = plane_img.subsurface(enemy1_rect)
@@ -160,7 +163,7 @@ enemy2_down_imgs = []
 enemy2_down_imgs.append(plane_img.subsurface(pygame.Rect(533, 653, 70, 98)))
 enemy2_down_imgs.append(plane_img.subsurface(pygame.Rect(603, 653, 70, 98)))
 enemy2_down_imgs.append(plane_img.subsurface(pygame.Rect(673, 653, 70, 98)))
-enemy2_down_imgs.append(plane_img.subsurface(pygame.Rect(743, 653, 70, 98)))
+enemy2_down_imgs.append(plane_img.subsurface(pygame.Rect(743, 653, 70, 9  8)))
 
 
 
@@ -180,6 +183,7 @@ bombs=pygame.sprite.Group()
 
 
 shoot_frequency = 0
+shoot2_frequency=0
 enemy_frequency = 0
 frequency=40
 player_down_index = 16
@@ -205,16 +209,16 @@ while running:
         if shoot_frequency >= 15:
             shoot_frequency = 0
 
-    if score> 10 :speed=3
-    if score > 50 :speed=4;frequency=35
-    if score > 100 :speed=6;frequency=25
-    if score > 500 :speed=7
+    if score> 10 :speed=2.5
+    if score > 50 :speed=3;frequency=35
+    if score > 100 :speed=4;frequency=25
+    if score > 500 :speed=5
     if enemy_frequency % frequency == 0:
         enemy1_pos = [random.randint(0, SCREEN_WIDTH - enemy1_rect.width), 0]
         enemy1 = Enemy(enemy1_img, enemy1_down_imgs, enemy1_pos,speed)
         enemies1.add(enemy1)#生成敌机组
 
-    if score > 40 and enemy_frequency % (frequency+150) == 0:
+    if score > 0 and enemy_frequency % (frequency+150) == 0:
         enemy2_pos = [random.randint(0, SCREEN_WIDTH - enemy2_rect.width), 0]
         enemy2 = Enemy(enemy2_img, enemy2_down_imgs, enemy2_pos,speed-2)
         enemies2.add(enemy2)#生成敌机组
@@ -247,18 +251,7 @@ while running:
 
         if enemy.rect.top > SCREEN_HEIGHT:
             enemies1.remove(enemy)
-    for enemy in enemies2:
-        enemy.sin_move()
-        # 判断玩家是否被击中
-        if pygame.sprite.collide_rect(enemy, player):  # 矩形碰撞检测
-            enemies_down_2.add(enemy)  # 添加到 爆炸敌机组
-            enemies2.remove(enemy)  # 移除正常敌机
-            player.is_hit = True
-            game_over_sound.play()
-            break
 
-        if enemy.rect.top > SCREEN_HEIGHT:
-            enemies2.remove(enemy)
     for bomb in bombs:
         bomb.move()
         if pygame.sprite.collide_rect(bomb,player):
@@ -271,6 +264,7 @@ while running:
 
     enemies1_down = pygame.sprite.groupcollide(enemies1, player.bullets, 1, 1)#组检测 如果敌方与子弹相撞  双方消失
     enemies2_down = pygame.sprite.groupcollide(enemies2, player.bullets, 1, 1)  # 组检测 如果敌方与子弹相撞  双方消失
+
     for enemy_down in enemies1_down:
         enemies_down.add(enemy_down)
     for enemy_down in enemies2_down:
@@ -278,27 +272,10 @@ while running:
     screen.fill(0)
     screen.blit(background_img, (0, 0))
 
-    if not player.is_hit:
-        screen.blit(player.image[player.img_index], player.rect)# 更换图片索引使飞机有动画效果
-        player.img_index = shoot_frequency // 8
-    else:
-        player.img_index = player_down_index // 8
-        screen.blit(player.image[player.img_index], player.rect)#被击中，更换飞机爆炸索引 动画显示
-        player_down_index += 1
-        if player_down_index > 47:
-            running = False
-    for enemy_down in enemies_down:
-        if enemy_down.down_index == 0:
-            enemy1_down_sound.play()
-        if enemy_down.down_index > 7:#如果超过 爆炸敌机的最后一张图
-            enemies_down.remove(enemy_down)
-            score += 1
-            continue
-        screen.blit(enemy_down.down_imgs[enemy_down.down_index // 2], enemy_down.rect)#敌机爆炸效果显示
-        enemy_down.down_index += 1
+
     for enemy_down in enemies_down_2:
         if enemy_down.down_index == 0:
-            enemy1_down_sound.play()
+            enemy2_down_sound.play()
         if enemy_down.down_index > 7:#如果超过 爆炸敌机的最后一张图
             enemies_down_2.remove(enemy_down)
             score += 2
@@ -315,7 +292,49 @@ while running:
     enemies1.draw(screen)
     enemies2.draw(screen)
     bombs.draw(screen)
-
+    shoot2_frequency += 1
+    for enemy in enemies2:
+        enemy.sin_move()
+        if shoot2_frequency== 2+enemy.rand or shoot2_frequency==102+enemy.rand:#子弹不同时发射
+            enemy.shoot(bullet2_img,enemy.speed+2)
+        for bullet in enemy.bullets:
+            bullet.move(-1)
+            if bullet.rect.bottom > SCREEN_HEIGHT:  # 子弹在屏幕外面，移除子弹
+                enemy.bullets.remove(bullet)
+            if pygame.sprite.collide_rect(bullet,player):
+                player.is_hit = True
+                game_over_sound.play()
+                break
+        # 判断玩家是否被击中
+        enemy.bullets.draw(screen)
+        if pygame.sprite.collide_rect(enemy, player) :  # 矩形碰撞检测
+            enemies_down_2.add(enemy)  # 添加到 爆炸敌机组
+            enemies2.remove(enemy)  # 移除正常敌机
+            player.is_hit = True
+            game_over_sound.play()
+            break
+        if enemy.rect.top > SCREEN_HEIGHT:
+            enemies2.remove(enemy)
+    if shoot2_frequency > 201:
+        shoot2_frequency = 0
+    if not player.is_hit:
+        screen.blit(player.image[player.img_index], player.rect)  # 更换图片索引使飞机有动画效果
+        player.img_index = shoot_frequency // 8
+    else:
+        player.img_index = player_down_index // 8
+        screen.blit(player.image[player.img_index], player.rect)  # 被击中，更换飞机爆炸索引 动画显示
+        player_down_index += 1
+        if player_down_index > 47:
+            running = False
+    for enemy_down in enemies_down:
+        if enemy_down.down_index == 0:
+            enemy1_down_sound.play()
+        if enemy_down.down_index > 7:  # 如果超过 爆炸敌机的最后一张图
+            enemies_down.remove(enemy_down)
+            score += 1
+            continue
+        screen.blit(enemy_down.down_imgs[enemy_down.down_index // 2], enemy_down.rect)  # 敌机爆炸效果显示
+        enemy_down.down_index += 1
     score_font = pygame.font.Font(None, 36)
     score_text = score_font.render(str(score), True, (128, 128, 128))
     text_rect = score_text.get_rect()
