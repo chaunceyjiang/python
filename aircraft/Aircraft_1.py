@@ -40,6 +40,7 @@ class Player(pygame.sprite.Sprite):
         self.is_hit=False
         self.newtime=0
         self.oldtime=60
+        self.oldtime2 = 60
     def shoot(self,bullet_img,state):
         pos=list(self.rect.midtop)
         pos[0]+=state
@@ -60,7 +61,13 @@ class Player(pygame.sprite.Sprite):
     def get_bomb(self):
         if self.bomb_nub<3:
             self.bomb_nub+=1
-
+    def get_double_laser(self,newtime):
+        self.oldtime2=newtime
+    def use_double_laser(self,newtime):
+        if round(newtime-self.oldtime2)>=10:#双发子弹持续10s
+            return 0
+        else:
+            return 15
     def moveUp(self):
         if self.rect.top <= 0:
             self.rect.top = 0
@@ -123,12 +130,13 @@ bullet_sound=pygame.mixer.Sound('resources/sound/bullet.wav')
 enemy1_down_sound=pygame.mixer.Sound('resources/sound/enemy1_down.wav')
 game_over_sound=pygame.mixer.Sound('resources/sound/game_over.wav')
 get_bomb_sound=pygame.mixer.Sound('resources/sound/get_bomb.wav')
+get_double_laser_sound=pygame.mixer.Sound('resources/sound/get_double_laser.wav')
 enemy2_down_sound=pygame.mixer.Sound('resources/sound/enemy2_down.wav')
 bullet_sound.set_volume(0.3)#set the playback volume for this Sound
 enemy1_down_sound.set_volume(0.3)
 game_over_sound.set_volume(0.3)
 get_bomb_sound.set_volume(0.5)
-
+get_double_laser_sound.set_volume(1)
 pygame.mixer.music.load('resources/sound/game_music.wav')
 pygame.mixer.music.play(-1)#If the loops is -1 then the music will repeat indefinitely.
 pygame.mixer.music.set_volume(0.25)
@@ -167,10 +175,11 @@ enemy2_down_imgs.append(plane_img.subsurface(pygame.Rect(743, 653, 70, 98)))
 
 
 
-
+laser_rect=pygame.Rect(268, 398, 56, 88)
 bomb_rect=pygame.Rect(100, 118, 63, 106)
 bomb_icon_rect=pygame.Rect(810, 692, 64, 55)
 bomb_icon_nub_rect=pygame.Rect(840, 646, 23, 46)
+laser_img=plane_img.subsurface(laser_rect)
 bomb_icon_nub_img=plane_img.subsurface(bomb_icon_nub_rect)
 bomb_img=plane_img.subsurface(bomb_rect)
 bomb_icon_img=plane_img.subsurface(bomb_icon_rect)
@@ -180,7 +189,8 @@ enemies2 = pygame.sprite.Group()
 enemies_down = pygame.sprite.Group()
 enemies_down_2 = pygame.sprite.Group()
 bombs=pygame.sprite.Group()
-
+double_laser=pygame.sprite.Group()
+bullets=pygame.sprite.Group()
 
 shoot_frequency = 0
 shoot2_frequency=0
@@ -188,8 +198,7 @@ enemy_frequency = 0
 frequency=40
 player_down_index = 16
 bomb_frequency=0
-
-flag=0
+laser_frequency=600
 score = 0
 speed = 2
 clock = pygame.time.Clock()
@@ -204,7 +213,7 @@ while running:
     if not player.is_hit:
         if shoot_frequency % 15 == 0:  #子弹计数器
             bullet_sound.play()
-            player.shoot(bullet_img,0)
+            player.shoot(bullet_img,player.use_double_laser(time.time()))
         shoot_frequency += 1
         if shoot_frequency >= 15:
             shoot_frequency = 0
@@ -218,20 +227,25 @@ while running:
         enemy1 = Enemy(enemy1_img, enemy1_down_imgs, enemy1_pos,speed)
         enemies1.add(enemy1)#生成敌机组
 
-    if score > 0 and enemy_frequency % (frequency+150) == 0:
+    if score > 45 and enemy_frequency % (frequency+150) == 0:
         enemy2_pos = [random.randint(0, SCREEN_WIDTH - enemy2_rect.width), 0]
         enemy2 = Enemy(enemy2_img, enemy2_down_imgs, enemy2_pos,speed-2)
         enemies2.add(enemy2)#生成敌机组
-    if bomb_frequency // 501 == 1:
+    if bomb_frequency // 1001 == 1:
         bomb_pos = [random.randint(0, SCREEN_WIDTH - bomb_rect.width), 0]
         bomb1=Bomb(bomb_img,bomb_pos)
         bombs.add(bomb1)
-
+    if laser_frequency // 1001 == 1:
+        laser_pos = [random.randint(0, SCREEN_WIDTH - laser_rect.width), 0]
+        laser=Bomb(laser_img,laser_pos)
+        double_laser.add(laser)
     bomb_frequency += 1
     enemy_frequency += 1
-
-    if bomb_frequency >=502 :
+    laser_frequency+=1
+    if bomb_frequency >=1002 :
         bomb_frequency=0
+    if laser_frequency >= 1002:
+        laser_frequency=0
     if enemy_frequency >= 400:
         enemy_frequency = 0
 
@@ -261,13 +275,32 @@ while running:
             break
         if bomb.rect.bottom > SCREEN_HEIGHT:
             bombs.remove(bomb)
-
+    for laser in double_laser:
+        laser.move()
+        if pygame.sprite.collide_rect(laser,player):
+            double_laser.remove(laser)
+            player.get_double_laser(time.time())
+            get_double_laser_sound.play()
+            break
+        if laser.rect.bottom > SCREEN_HEIGHT:
+            double_laser.remove(laser)
+    for bullet in bullets:
+        bullet.move(-1)
+        if pygame.sprite.collide_rect(bullet, player):
+            bullets.remove(bullet)
+            player.is_hit = True
+            game_over_sound.play()
+            break
+        if bullet.rect.top > SCREEN_HEIGHT:
+            bullets.remove(bullet)
     enemies1_down = pygame.sprite.groupcollide(enemies1, player.bullets, 1, 1)#组检测 如果敌方与子弹相撞  双方消失
     enemies2_down = pygame.sprite.groupcollide(enemies2, player.bullets, 1, 1)  # 组检测 如果敌方与子弹相撞  双方消失
 
     for enemy_down in enemies1_down:
         enemies_down.add(enemy_down)
     for enemy_down in enemies2_down:
+        for bullet in enemy_down.bullets:
+            bullets.add(bullet)
         enemies_down_2.add(enemy_down)
     screen.fill(0)
     screen.blit(background_img, (0, 0))
@@ -292,11 +325,14 @@ while running:
     enemies1.draw(screen)
     enemies2.draw(screen)
     bombs.draw(screen)
+    bullets.draw(screen)
+    double_laser.draw(screen)
     shoot2_frequency += 1
     for enemy in enemies2:
         enemy.sin_move()
         if shoot2_frequency== 2+enemy.rand or shoot2_frequency==102+enemy.rand:#子弹不同时发射
             enemy.shoot(bullet2_img,enemy.speed+2)
+#        bullets=enemy.bullets.copy()
         for bullet in enemy.bullets:
             bullet.move(-1)
             if bullet.rect.bottom > SCREEN_HEIGHT:  # 子弹在屏幕外面，移除子弹
@@ -306,7 +342,7 @@ while running:
                 game_over_sound.play()
                 break
         # 判断玩家是否被击中
-        enemy.bullets.draw(screen)
+            enemy.bullets.draw(screen)
         if pygame.sprite.collide_rect(enemy, player) :  # 矩形碰撞检测
             enemies_down_2.add(enemy)  # 添加到 爆炸敌机组
             enemies2.remove(enemy)  # 移除正常敌机
