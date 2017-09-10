@@ -15,6 +15,7 @@ print(g.send('aaa'))
 print(g.send(3))
 print(g.send('exit'))
 '''
+
 '''
 out:
 0
