@@ -42,5 +42,5 @@ def evert_last_Url(url,q):
         except :
             pass
         else:
-            get_detailed_information(info)
-#            q.put(info)
+#            get_detailed_information(info)
+            q.put(info)
