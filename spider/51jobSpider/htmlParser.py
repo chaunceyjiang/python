@@ -23,24 +23,32 @@ def fetch_all_Url(html):
             full.insert(-1,x)
             url_list.append('.'.join(full))
     return url_list[1:]
-def get_detailed_information(info):
-    html=nextHtml(info['详细信息URL'])
-    position=str(html.find('div',attrs={'class':'bmsg job_msg inbox'}).span.get_text()).strip()
-    
+def get_detailed_information(info,q):
+    try:
+        s=''
+        html=nextHtml(info['详细信息URL'])
+        position=str(html.find('div',attrs={'class':'bmsg job_msg inbox'}).span.get_text()).strip('\r\t\n ')
+        for string in html.find('div', {'class': 'bmsg job_msg inbox'}).stripped_strings:
+            s += repr(string)
+        info[position[:-1]]=s[:-10]
+    except:
+        pass
+    else:
+        q.put(info)
+
 def evert_last_Url(url,q):
     html=nextHtml(url)
     for el in html.find('div',attrs={'id':'resultList'}).findAll('div',attrs={'class':'el'}):
         info = {}
         try:
-            info['招聘职位']=str(el.contents[1].span.a.get_text()).strip()
-            info['详细信息URL']=str(el.contents[1].span.a['href']).strip()
-            info['公司名称']=str(el.contents[3].a['title']).strip()
-            info['公司全部招聘信息URL']=str(el.contents[3].a['href']).strip()
-            info['公司地址']=str(el.contents[5].get_text())
-            info['薪资范围']=str(el.contents[7].get_text())
-            info['招聘日期']=str(el.contents[9].get_text())
+            info['招聘职位']=str(el.contents[1].span.a.get_text()).strip('\r\t\n ')
+            info['详细信息URL']=str(el.contents[1].span.a['href']).strip('\r\t\n ')
+            info['公司名称']=str(el.contents[3].a['title']).strip('\r\t\n ')
+            info['公司全部招聘信息URL']=str(el.contents[3].a['href']).strip('\r\t\n ')
+            info['公司地址']=str(el.contents[5].get_text()).strip('\r\t\n ')
+            info['薪资范围']=str(el.contents[7].get_text()).strip('\r\t\n ')
+            info['招聘日期']=str(el.contents[9].get_text()).strip('\r\t\n ')
         except :
             pass
         else:
-#            get_detailed_information(info)
-            q.put(info)
+            get_detailed_information(info,q)

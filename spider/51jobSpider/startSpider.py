@@ -25,13 +25,11 @@ while len(all_url_list)!=0:
         url=all_url_list.pop()
         t1=Thread(target=evert_last_Url,args=(url,q))
         t1.start()
-        print('新线程',t1)
         threads.append(t1)
     for t in threads:
         if t.is_alive()==False:
             threads.remove(t)
-            print(t,'线程程死亡')
-    if len(threads2)==0:
+    if len(threads2) <5:
         t2 = Thread(target=save2mongo, args=(q,))
         t2.start()
         threads2.append(t2)
