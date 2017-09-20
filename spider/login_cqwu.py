@@ -23,7 +23,7 @@ def phantomJS(url):
         driver.find_element_by_name('txt_asmcdefsddsd').clear()
         driver.find_element_by_name('txt_asmcdefsddsd').send_keys('201458254036')
         driver.find_element_by_id('txt_pewerwedsdfsdff').clear()
-        driver.find_element_by_id('txt_pewerwedsdfsdff').send_keys('jiangyan520')
+        driver.find_element_by_id('txt_pewerwedsdfsdff').send_keys('xxxx')
         driver.find_element_by_name('txt_sdertfgsadscxcadsads').clear()#网页默认需要点击验证码才会显示，所以这里单机验证码输入框，以显示验证码
         driver.save_screenshot('screenshot.png')#保存屏幕截图
         i = Image.open("screenshot.png")
