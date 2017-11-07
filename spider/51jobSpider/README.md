@@ -4,4 +4,4 @@
 
 ### MongoDB截图
 
-![](https://github.com/goodstuden/python/blob/master/spider/51jobSpider/search.py)
+![](https://github.com/goodstuden/python/blob/master/spider/51jobSpider/showMongoDB.png)
